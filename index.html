@@ -497,8 +497,8 @@ const ZONES = {
   shitahara: [150, 272, 26, 13, '下腹の前'],
   waist_L:   [190, 298, 14, 12, '左腰'],
   waki_L:    [190, 226, 12, 18, '左脇腹'],
-  sleeve_R:  [ 90, 252, 15, 24, '右袂'],
-  sleeve_L:  [210, 252, 15, 24, '左袂'],
+  sleeve_R:  [ 90, 252, 15, 24, '右たもと'],
+  sleeve_L:  [210, 252, 15, 24, '左たもと'],
   soto_R:    [ 48, 176, 15, 20, '右の外側'],
   soto_L:    [252, 176, 15, 20, '左の外側']
 };
@@ -651,7 +651,7 @@ function select(i) {
     ? ordered.map(it =>
         '<li' + (isAux(it) ? ' class="aux"' : '') + '><span class="sw ' + it.h + '"></span><span class="who">' + HAND[it.h] + '</span>' +
         '<span>' + esc(ZONES[it.z][4]) + '</span><span class="stp">' +
-        (isAux(it) ? '補助' : (it.steps.length ? esc(it.steps.slice().sort().join('・')) + '番目' : '') + (it.flip ? '・手を返す' : '')) + '</span></li>').join('')
+        (isAux(it) ? '補助動作' : (it.steps.length ? esc(it.steps.slice().sort().join('・')) + '番目' : '') + (it.flip ? '・手を返す' : '')) + '</span></li>').join('')
     : '<li class="empty">この歌詞に、位置を指す記述はありません。</li>';
   $('#desc').innerHTML = refsHtml(l.hand);
   const names = [...new Set((l.hand.match(/「([^」]+)」/g) || []).map(s => s.slice(1, -1)))].filter(n => DATA.defs[n]);
