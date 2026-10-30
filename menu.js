@@ -5,7 +5,7 @@
   var PAGES = [
     ['よろづよ八首', 'index.html', true],
     ['一下り目', 'hitokudari.html', true],
-    ['二下り目', 'futakudari.html', false],
+    ['二下り目', 'futakudari.html', true],
     ['三下り目', 'mikudari.html', false],
     ['四下り目', 'yokudari.html', false],
     ['五下り目', 'itsukudari.html', false],
