@@ -9,7 +9,7 @@
     ['三下り目', 'mikudari.html', true],
     ['四下り目', 'yokudari.html', true],
     ['五下り目', 'itsukudari.html', true],
-    ['六下り目', 'mukudari.html', false],
+    ['六下り目', 'mukudari.html', true],
     ['七下り目', 'nanakudari.html', false],
     ['八下り目', 'yakudari.html', false],
     ['九下り目', 'kokonokudari.html', false],
