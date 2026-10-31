@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>四下り目 手の位置</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* layout: 歌詞の流れ(左)と、選んだ歌詞の手が指す体の位置を示す人形(右・追従)。幅が狭いときは人形が上に張り付く */
+:root {
+  --bg: #e9eef2;
+  --surface: #f7f9fb;
+  --ink: #14212b;
+  --muted: #566874;
+  --line: #c3cfd8;
+  --body: #9db0bd;
+  --right: #d4412a;
+  --left: #1c76b5;
+  --both: #b07a06;
+  --font-display: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1a22;
+    --surface: #16242f;
+    --ink: #e6edf1;
+    --muted: #93a6b2;
+    --line: #2a3b48;
+    --body: #3a5062;
+    --right: #ff6a4d;
+    --left: #4db3f0;
+    --both: #f2c14a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1a22;
+  --surface: #16242f;
+  --ink: #e6edf1;
+  --muted: #93a6b2;
+  --line: #2a3b48;
+  --body: #3a5062;
+  --right: #ff6a4d;
+  --left: #4db3f0;
+  --both: #f2c14a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--bg);
+}
+.wrap { max-width: 1040px; margin-inline: auto; }
+header { margin-bottom: 18px; }
+h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.3;
+  margin: 0 0 4px;
+  text-wrap: balance;
+}
+header p { margin: 0; color: var(--muted); max-width: 40em; }
+
+.layout { display: flex; flex-direction: column; gap: 20px; }
+.stage {
+  order: -1;
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  max-height: 66vh;
+  overflow: auto;
+}
+.stage-body {
+  display: grid;
+  grid-template-columns: minmax(96px, 34%) minmax(0, 1fr);
+  grid-template-areas: "fig head" "fig rows";
+  grid-template-rows: auto 1fr;
+  column-gap: 12px;
+  row-gap: 8px;
+}
+.head { grid-area: head; min-width: 0; }
+.fig { grid-area: fig; min-width: 0; }
+.rows-wrap { grid-area: rows; min-width: 0; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.idx { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
+.nav { display: flex; gap: 6px; }
+.nav button {
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+}
+.nav button:hover { border-color: var(--muted); }
+.nav svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+h2.now {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.25;
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+#fig { width: 100%; height: auto; display: block; }
+#fig .guide { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 5; }
+#fig .gl, #fig .side { fill: var(--muted); font: 500 10px var(--font-body); }
+#fig .gl { text-anchor: end; }
+#fig .side { font-size: 11px; }
+.zone.R { --c: var(--right); }
+.zone.L { --c: var(--left); }
+.zone.B { --c: var(--both); }
+.zone .glow { fill: var(--c); opacity: 0.8; }
+.zone .ring { fill: none; stroke: var(--c); stroke-width: 1.5; }
+.zone .badge { fill: var(--c); stroke: var(--bg); stroke-width: 1.5; }
+.zone .flip { stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; }
+.zone .flipHead { fill: var(--ink); }
+.zone .upline { stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; }
+.zone .uphead { fill: var(--ink); }
+.zone.aux .glow { opacity: 0.28; animation: none; }
+.zone.aux .ring { stroke-dasharray: 3 3.5; stroke-width: 1.4; opacity: 0.9; }
+.zone .num { fill: var(--bg); font: 700 10px var(--font-body); text-anchor: middle; dominant-baseline: central; }
+.zone { animation: appear 0.28s ease-out both; }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes breathe { 50% { opacity: 0.5; } }
+@media (prefers-reduced-motion: no-preference) {
+  .zone .glow { animation: breathe 2.6s ease-in-out infinite; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zone { animation: none; }
+}
+
+.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.rows li { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: 8px; font-size: 14px; line-height: 1.4; }
+.sw { width: 12px; height: 12px; border-radius: 50%; }
+.sw.R { background: var(--right); }
+.sw.L { background: var(--left); }
+.sw.B { background: var(--both); }
+.rows li.aux { color: var(--muted); }
+.rows li.aux .sw { background: none; border: 2px dashed currentColor; width: 12px; height: 12px; }
+.rows li.aux .sw.R { color: var(--right); }
+.rows li.aux .sw.L { color: var(--left); }
+.rows li.aux .sw.B { color: var(--both); }
+.rows li.aux .stp { border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; }
+.who { font-weight: 700; font-size: 12px; letter-spacing: 0.04em; }
+.stp { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.empty { margin: 0; color: var(--muted); font-size: 14px; }
+
+.notes { grid-column: 1 / -1; margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.notes h3 { margin: 0; font-weight: 700; font-size: 13px; }
+.notes .desc { margin: 4px 0 0; font-size: 14px; }
+.ref { border-bottom: 2px solid var(--left); font-weight: 500; }
+.defs { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.defs li { font-size: 13px; color: var(--muted); }
+.defs b { color: var(--ink); font-weight: 700; }
+
+.verses { display: grid; gap: 16px; }
+.verse { display: grid; grid-template-columns: 2.9rem minmax(0, 1fr); gap: 10px; align-items: start; }
+.vl { font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--muted); padding-top: 8px; white-space: nowrap; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.chip {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 17px;
+  line-height: 1.3;
+  min-height: 44px;
+  padding: 6px 11px 5px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  scroll-margin-top: calc(var(--stage-h, 0px) + 12px);
+}
+.chip:hover { border-color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip.none { border-style: dashed; color: var(--muted); }
+.chip.none[aria-pressed="true"] { color: var(--bg); }
+.dots { display: flex; gap: 3px; height: 4px; }
+.dots i { width: 12px; height: 4px; border-radius: 2px; display: block; }
+.dots .R { background: var(--right); }
+.dots .L { background: var(--left); }
+.dots .B { background: var(--both); }
+button:focus-visible, summary:focus-visible { outline: 2px solid var(--left); outline-offset: 2px; }
+
+@media (min-width: 820px) {
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, 390px); gap: 36px; align-items: start; }
+  .stage { order: 0; grid-column: 2; grid-row: 1; top: 16px; max-height: calc(100vh - 32px); padding: 16px; }
+  .verses { grid-column: 1; grid-row: 1; }
+  .stage-body { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "fig" "rows"; grid-template-rows: auto; row-gap: 12px; }
+  .fig { max-width: 210px; width: 100%; margin-inline: auto; }
+  h2.now { font-size: 36px; }
+  .chip { font-size: 19px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>四下り目 手の位置</h1>
+    <p>お歌を選ぶと、その手振りの位置が色で表されます。人形は正面向きで、画面の左が人形の右手側です。← → キーでも進めます。</p>
+  </header>
+
+  <div class="layout">
+    <aside class="stage" id="stage" aria-live="polite">
+      <div class="stage-body">
+        <div class="head">
+          <div class="top">
+            <span class="idx" id="idx"></span>
+            <div class="nav">
+              <button type="button" id="prev" aria-label="前の歌詞"><svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5"/></svg></button>
+              <button type="button" id="next" aria-label="次の歌詞"><svg viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg></button>
+            </div>
+          </div>
+          <h2 class="now" id="now"></h2>
+        </div>
+
+        <div class="fig">
+          <svg id="fig" viewBox="0 0 300 540" role="img" aria-label="正面向きの人形。選んだ歌詞の手が指す位置が色で示されます">
+            <defs>
+              <filter id="soft" filterUnits="userSpaceOnUse" x="-20" y="-20" width="340" height="580"><feGaussianBlur stdDeviation="4"/></filter>
+              <filter id="glow" filterUnits="userSpaceOnUse" x="-40" y="-40" width="380" height="620"><feGaussianBlur stdDeviation="5"/></filter>
+              <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" style="stop-color:var(--body);stop-opacity:1"/>
+                <stop offset="1" style="stop-color:var(--body);stop-opacity:0.1"/>
+              </linearGradient>
+            </defs>
+            <g class="guides">
+              <line class="guide" x1="0" y1="50" x2="270" y2="50"/><text class="gl" x="296" y="53">額</text>
+              <line class="guide" x1="0" y1="91" x2="270" y2="91"/><text class="gl" x="296" y="94">口</text>
+              <line class="guide" x1="0" y1="136" x2="270" y2="136"/><text class="gl" x="296" y="139">肩</text>
+              <line class="guide" x1="0" y1="170" x2="270" y2="170"/><text class="gl" x="296" y="173">胸</text>
+              <line class="guide" x1="0" y1="240" x2="270" y2="240"/><text class="gl" x="296" y="243">腹</text>
+              <line class="guide" x1="0" y1="298" x2="270" y2="298"/><text class="gl" x="296" y="301">腰</text>
+            </g>
+            <g filter="url(#soft)">
+              <path d="M100 308 L90 530 L210 530 L200 308 Z" fill="url(#fade)"/>
+              <path d="M93 138 L72 298" stroke="var(--body)" stroke-width="26" stroke-linecap="round" fill="none"/>
+              <path d="M207 138 L228 298" stroke="var(--body)" stroke-width="26" stroke-linecap="round" fill="none"/>
+              <path d="M96 128 Q150 112 204 128 L208 160 L200 312 L100 312 L92 160 Z" fill="var(--body)"/>
+              <rect x="139" y="98" width="22" height="30" rx="9" fill="var(--body)"/>
+              <ellipse cx="150" cy="72" rx="29" ry="35" fill="var(--body)"/>
+            </g>
+            <text class="side" x="8" y="18">右手側</text>
+            <text class="side" x="292" y="18" text-anchor="end">左手側</text>
+            <g id="zones"></g>
+          </svg>
+        </div>
+
+        <div class="rows-wrap">
+          <ul class="rows" id="rows"></ul>
+        </div>
+
+        <section class="notes">
+          <h3>動作の説明</h3>
+          <p class="desc" id="desc"></p>
+          <ul class="defs" id="defs"></ul>
+        </section>
+      </div>
+    </aside>
+
+    <div class="verses" id="verses"></div>
+  </div>
+</div>
+
+<script>
+const RAW_DEFS = `#予備動作
+##「合掌の手」
+両平手の掌を向かい合わせに軽くつけて、胸の前に立てる
+
+##「イサミの手」
+まず、右平手は掌を下向きに、左平手は掌を上向きにして、肩の高さまで上げ、次に、その両平手を腹の脇前まで下げながら掌を返して、前の反対にして、再び肩の高さまで上げる。
+
+##「オサエの手」
+両平手の掌を下向きにして、腹の前あたりで、平らに揃える。
+
+##「平らに揃える手」
+両平手の掌を上向きにして、胸の前あたりで、小指と小指とを三，四寸離して揃える。。この場合は、そのところで特に説明する。
+
+##「たすけの手」
+まず、両平手の掌を内向きにして、頬の前辺りに上げるや、
+
+##「回りの手」
+左平手で右袂を軽く押さえ、右平手は掌を外向きにして、左頬の斜め前下あたりに上げる。
+
+##「口許を指す手」
+左平手で右袂を軽く押さえ、右人差指は掌を内向きにして、口許を指す。
+
+##「右耳を指す手」
+左平手で右袂を軽く押さえ、右人差指は掌を内向きにして、右耳を指す。
+
+##「平らに円を描く手」
+両人差指の甲を上向きにし、左指先を少し重ね、腹の前方に突き出すや、直ちに左右に離して、平に円を描き、甲を左右外向きにして、腹のすぐ前に両親指を軽くつけて揃える。
+
+`;
+const RAW_CHAPTER = `#四下り目
+
+##一ッ
+###ひとが
+合掌の扇（図右）を左右に開きながら、少し前方からすくい気味で下ろし、腹の前あたりから、両扇を上向きにし、両扇の箸を三分の一ほど右を上にして重ね、平らに揃えて、肩の高さまで上げる（図左）。足は、左で調子を取って腰を心持ち落とし、右を踏んで腰を伸ばす。
+###なにごと、いはうとも
+右腹前、左腹前と交互に五回「立て扇」（図）足は右左と二歩進み、右を揃え、左右と踏む。
+###かみが
+両扇で「合掌の手」足は、左を踏む。
+###みている
+両扇は掌を上向きにして、右を上に端を三分の一ほど重ねて、顔の前に平らに上げるや、掌を内向きより外向きに返し（それにつれて、両扇もすれすれに回る）、右を前に端を三分の一ほど重ねて顔の前に立てる（ただし、扇の位置は下げずに、顔の前で回すこと＝図①②③）。足は、右左と踏む。
+###きを
+両扇を左右よりすくうようにして、肩の高さで、平らに揃える（図）。足は右を踏む。
+###しずめ
+右腹前、左腹前と二回「立て扇」（図）足は、右左と二歩退る。
+##二ツ
+「合掌の手」足は右を揃える。
+###ふたりの
+右腹前、左腹前と二回「立て扇」（ただし、この場合は、両扇の間を一，二寸離すこと＝図）足は、右左と二歩進む。
+###こゝろを
+こゝろをー両扇の先を、右左と胸にとる（図）足は、右を揃え、左を踏む。
+###をさめ、いよ
+両扇で「オサエの手」、すなわち甲を上向きにして、右扇を上にして、その端を三分の一ほど重ねて、平らに揃える（図）。続いて、両扇をそのまま額の前まで上げつつ、その先を向かい合わせにするや（図右）、直ちに、上下に円を描いて、肩の高さに平らに揃える（図左）。（備考…三下り目四ツの「じつの、たすけハ」と同じ要領で、円の描き始めは右方が上になっている）足は、右左右と踏む。
+###なにかの
+両扇で「回りの手」（図）足は、「回りの足」（その一）の要領で、身体をその場で一回りさす。
+###ことをも
+両扇をそのまま額の前まで上げつつ、その先を向かい合わせにするや（図右）、直ちに、上下に円を描いて、肩の高さに平らに揃える（図左）。（備考…三下り目四ツの「たすけは」と同じ要領で、円の描き始めは右扇が上になっている）。足は右左と踏む。
+###あらはれる
+両平手の掌を前向きにして、下腹の前あたりに、両扇の先を斜め下向きに下げるや、直ちに手首を軽く動かして、少し斜め右前、斜め左前、斜め右前にと三回、物を放り上げる格好をする（図）。足は、右左と二歩退り、右を揃える。
+##三ッ
+###みな
+手足ともに、一ツの「ひとが」と同じ動作。すなわち合掌の扇（図右）を左右に開きながら、少し前方からすくい気味で下ろし、腹の前あたりから、両扇を上向きにし、両扇の端を三分の一ほど右を上にして重ね、平らに揃えて、肩の高さまで上げる（図左）。足は、左で調子を取って腰を心持ち落とし、右を踏んで腰を伸ばす。
+###みてゐよ
+みてゐよー両扇は掌を上向きにして、右を上に端を三分の一ほど重ねて、顔の前に平らに上げるや、掌を内向きより外向きに返し（それにつれて、両扇もすれすれに回る）、右を前に端を三分の一ほど重ねて顔の前に立てる（ただし、扇の位置は下げずに、顔の前で回すこと＝図①②③）。足は、「みて」の時、踏まず、「ゐよ」の時左を踏む。
+###そばなもの
+左扇で右たもとを軽く押さえ、右扇は手のひらを内向きにして、左袂のあたりに下げるや、直ちに、掌を上向きにして、腹の斜め右前あたりに平らに出し（図）次に、左右の王日でその反対の動作をし、さらにもう一度、最初の動作をする。足は、右左と二歩進み、右を揃える。
+###かみの
+両扇で「合掌の手」足は、左を踏む。
+###すること
+右腹前、左腹前と二回「立て扇」（図）足は右左と踏む。
+###なすことを
+両扇で、右より四回「ナゲの手」（図）足は、右左と二歩退り、右を揃え、左を踏む。
+##四ッ
+###よるひる
+右扇は、甲を内向きに手を伸ばして、顔の右向こうに立て、左扇は、掌を内向きにして、顔の左前に立て（図）、次に、両扇を前後に行き交えながら、手首を返して、同じ要領で前と反対に立てる。足は、右左と二歩進む。
+###どんちやん
+両扇を、胸下の高さあたりで、掌を外向きに左右に開くや、直ちに、右手首を下にして、掌を内向きに互いに行き交え（図）、次に左手首を下にして、もう一度、互いに行き交える。足は、右を揃え、左を踏む。
+###つと
+両扇で「合掌の手」足は、右を踏む。
+###めする
+右腹前、左腹前と二回「立て扇」（図）足は、右左と踏む。
+###そばも
+左扇で右たもとを軽く押さえ、右扇は掌を内向きにして、左たもとのあたりに下げるや、直ちに、掌を上向きにして、腹の斜め右前に平に出す（図）。足は、右を左の前から、斜め右前にほんの少し出す。（この時、身体も少し斜め右向きとなる）
+###やかまし
+前の右扇の二，三寸下に、左扇を掌を上向きにして持っていくとともに、両手首を折って、両扇で斜め右前を仰ぐようにし（図）、次に、身体を少し斜め左向きにするとともに、両扇で斜め左前をあおぐようにする。足は、「やか」にて、左を右の少し前に出し、「まし」にて、その左をもとに戻して、ほんの少し左斜め前に踏む。
+###うたてかろ
+両扇で、右より四回「ナゲの手」（図）足は、右左と二歩退り、右を揃え、左を踏む。
+##五ッ
+###いつも
+手足ともに、一ツの「ひとが」と同じ動作。すなわち、合掌の扇（図右）を左右に開きながら、少し前方からすくい気味で下ろし、腹の前あたりから、両扇を上向きにし、両扇の端を三分の一ほど右を上にして重ね、平らに揃えて、肩の高さまで上げる（図左）。足は、左で調子を取って腰を心持ち落とし、右を踏んで腰を伸ばす。
+###たすけが
+右腹前、左腹前と二回「立て扇」（図）足は、右左と二歩進む。
+###せくからに
+左扇は掌を外向きにして、左腹の前あたりに下げ、右扇は掌を内向きにして、その先を胸に当て（図右）、次に左右の扇を前の反対にして、二回行き交え、最後に、右扇はそのままにして、その上に左扇を重ねる（図左）。足は、右を揃え、左右左と踏む。
+###はやく
+胸に当てた両扇を、すばやく額前に上げるや（図右）、上下に円を描いて、肩の高さに平らに揃える（図左）。（備考…三下り三ツの「でけたち、きたるが」と同じ要領なり。ただし、動作を敏捷にすること）足は、右を踏む。
+###やうきに
+両平手の掌を前向きにして、下腹の前あたりに、両扇の先を斜め下向きに下げるや、直ちに手首を軽く動かして、少し斜め右前（図）、斜め左前にと、二回、物を放り上げるようにして肩前あたりに上げる。足は、右左と踏む。（備考…「きに」の動作はなるべくゆっくりと、扇を上げて次の動作にすぐに移るようにすること）
+###なりてこい
+右腹前、左腹前、右腹前と三回「立て扇」（図）足は、右左と二歩退り、右を揃える。
+##六ツ
+両扇で「合掌の手」足は、左を半分出す。
+###むらかた
+両扇で「回りの手」（図）足は、「回りの足」（その二）の要領で、身体をその場で一回りさす。
+###はやくに
+両扇で、額前より上下に円を描いて、肩の高さに平らに揃える（図右、図左）。（備考…五ツの「はやく」より少しゆっくりすること。また、円の描き始めは右方が上になっている）足は、右左と踏む。
+###たすけたい
+右腹前、左腹前、右腹前と三回「立て扇」（図）足は、右左と二歩進み、右を揃える。
+###なれど
+両肩をそのまま、掌を前向きにして、腹の前に倒す（図）。足は、左を踏む。
+###こゝろが
+両扇の先を、右左と胸にとる（図）。足は、右左と踏む。
+###わからいで
+両扇で、右より四回「ナゲの手」（図）足は、右左と二歩退り、右を揃え、左を踏む。
+##七ッ
+###なにか
+手足ともに、一ツの「ひとが」と同じ動作。すなわち、合掌の扇（図右）を左右に開きながら、少し前方からすくい気味で下ろし、腹の前あたりから、両扇を上向きにし、両扇の端を三分の一ほど右を上にして重ね、平らに揃えて、肩の高さまで上げる（図左）。足は、左で調子を取って腰を心持ち落とし、右を踏んで腰を伸ばす。
+###よろづの
+右腹前、左腹前と二回「立て扇」（図）足は、右左と二歩進む。
+###たすけあい
+両扇の間隔を三，四寸おいて、向かい合わせにし、肩の斜め右前に、斜め右向きに平らに上げ（この時、右扇が斜め右下）、次に、両手首を左に軽く折って、両扇を方の斜め左前で、斜め左向きに平にし（この時、左肩が斜め左下）、なお、もう二回、右左と同じ動作を繰り返す。足は、右を揃え、左右左と踏む。
+###むねの
+左扇で右たもとを軽く押さえ、右扇の先を胸にとる（図）。足は、右を半ば鉤型に踏む。
+###うち
+手は前のまま、足は左を浮かし調子を取るとともに、右の爪先を中心として、身体をその場で右方より一回りさすや、左を正面向きに揃え、それにつれて右のかかとを静かに下ろす。（ただし、次の動作「より」の説明を参照のこと）
+###より、しあんせよ
+両扇で、額前から上下に円を描いて、胸下のあたりから、すぐに両扇を重ねて胸にとる。足は、「より」の時に、前述の右踵を静かに下ろすくらいとなり、続いて、右左と二歩退り、右を揃える。　注意…ここにて、扇を八足の上に置く。
+##八ッ
+###やまひの
+左平手で右たもとを軽く押さえ、右平手の甲を上向きに、指先を後ろ向きにして、右耳の下辺りに持っていき、頭を右方に少し傾けて、手枕する型をゆっくりする（図）。足は右を左の前に踏む。
+###すつきり
+身体および右足は、斜め左向きとなったまま、両平手は掌を内向きに、指先を下向きにして、みぞおちのあたりにやると同時に、おもむろに指先を内に向けて両掌を上向きに返して、両平手は「平らに揃える手」をするとともに、体は正面向きとなる。足は、「きり」の時、右を一歩進む。
+###ねは
+「オサエの手」足は、左を一歩進む。
+###ぬける
+前の「オサエの手」の指先をおもむろにうちに向け返して、掌を上向きにして、「平らに揃える手」をする。足は、右を揃え、左を踏む。
+###こゝろハ
+両平手の指先を、右左と胸にとる。足は、右左と踏む。
+###だん／＼
+右より二回「ナゲの手」足は、後ろ向きに右左と二歩出す（図①②）。
+###いさみくる
+三回「イサミの手」足は、右を半ば鉤型に踏み、左を回して正面向きに揃え、右を踏む（図③④⑤）。
+##九ッ
+###こゝは
+「オサエの手」足は、右を踏む。
+###このよの
+二回「イサミの手」足は、右左と二歩進む。
+###ごくらくや
+「合掌の手」足は右を揃え、左右と踏む。
+###わしも
+両平手の指先を同時に胸にとる。足は、左を踏む。
+###はや／＼
+二回「イサミの手」足は、後ろ向きに右左と二歩出す。（図①②）
+###まゐりたい
+「合掌の手」足は、右を半ば鉤型に踏み、左を回して正面向きに揃え、右を踏む（図③④⑤⑥）。（備考…ハツの「いさみくる」と同じ足とする）
+##十ド
+###このたび
+二回「イサミの手」足は、右左と二歩進む。
+###むね
+両平手の指先を、同時に胸にとる。足は、右を揃える。
+###のうち
+両平手で、額前より胸前に「上下に円を描く手」をして、直ちに指先を、同時に胸にとる。足は、左右と踏む。
+###すみきり
+両平手で胸三寸をはらう（備考…「たすけの手」と同じ要領にて、胸の前で手首を返すこと＝図）。足は、「きり」の時、左を踏む。
+###ましたが
+両平手で「上下に円を描く手」足は、右左と踏む。
+###ありがたい
+両平手は前のままで、頭を少し垂れて物を頂くようにする（図）。足は、右左と二歩退り、右を揃える。
+`;
+
+/* 体の位置: [中心x, 中心y, 横幅の半分, 縦幅の半分, 呼び名]。人形は正面向きなので、画面の左が人形の右 */
+const ZONES = {
+  hitai:     [150,  50, 24, 10, '額'],
+  mimi_R:    [120,  72,  7, 12, '右耳'],
+  hoho_R:    [133,  82, 12, 12, '右頬'],
+  hoho_L:    [167,  82, 12, 12, '左頬'],
+  hoho_Ll:   [181, 102, 15, 12, '左頬の斜め前下'],
+  kuchi:     [150,  91, 12,  6, '口許'],
+  kata_R:    [114, 136, 17, 11, '右肩の前'],
+  kata_L:    [186, 136, 17, 11, '左肩の前'],
+  kata_c:    [150, 137, 60, 13, '肩の高さ(肩幅いっぱい)'],
+  kata_m:    [150, 137, 24, 10, '肩の高さ(中央)'],
+  mune:      [150, 170, 30, 16, '胸の前'],
+  mune_R:    [114, 174, 15, 16, '右の胸脇前'],
+  mune_L:    [186, 174, 15, 16, '左の胸脇前'],
+  mune_Rn:   [128, 174, 12, 16, '右の胸脇前(「この」より内側)'],
+  mune_Ln:   [172, 174, 12, 16, '左の胸脇前(「この」より内側)'],
+  mizo:      [150, 206, 20, 11, 'みぞおちの前'],
+  hara:      [150, 240, 32, 17, '腹の前'],
+  hara_R:    [116, 242, 14, 16, '右の腹の脇前'],
+  hara_L:    [184, 242, 14, 16, '左の腹の脇前'],
+  shitahara: [150, 272, 26, 13, '下腹の前'],
+  waist_L:   [190, 298, 14, 12, '左腰'],
+  waki_L:    [190, 226, 12, 18, '左脇腹'],
+  sleeve_R:  [ 90, 252, 15, 24, '右たもと'],
+  sleeve_L:  [210, 252, 15, 24, '左たもと'],
+  soto_R:    [ 48, 176, 15, 20, '右の外側'],
+  soto_L:    [252, 176, 15, 20, '左の外側'],
+  harasoto_R:[ 48, 240, 15, 18, '右の外側(腹の高さ)'],
+  harasoto_L:[252, 240, 15, 18, '左の外側(腹の高さ)'],
+  yoki:      [160, 244, 11, 14, '左手のさげた容器のあたり'],
+  uemune:    [150, 152, 27, 11, '上胸のあたり'],
+  waist_R:   [110, 298, 14, 12, '右腰の前'],
+  mizo_w:    [150, 206, 44, 12, 'みぞおちの高さ(左右に動かす)'],
+  hara_Rm:   [120, 242, 15, 16, '右腹の前'],
+  mune_Rm:   [120, 172, 15, 16, '右胸の前'],
+  kata_Rm:   [120, 136, 15, 11, '右肩の前'],
+  hara_Lm:   [174, 242, 17, 16, '左腹の前(斜め左へ出す)'],
+  mune_w:    [150, 172, 52, 16, '胸の前'],
+  mune_Lm:   [182, 170, 14, 15, '左胸の前'],
+  mune_Lc:   [166, 174, 11, 13, '左掌の上(右手で叩く)'],
+  hara_w:    [150, 240, 60, 13, '腹の高さ(左右に引き分ける)'],
+  mimi_Rs:   [118,  92, 10, 11, '右耳の下'],
+  waist_m:   [150, 296, 10, 10, '腰の中央(矢印の出発点)'],
+  hara_Lf:   [180, 242, 15, 16, '左腹の前'],
+  munashita: [150, 190, 30, 11, '胸下の前'],
+  me_R:      [122,  60, 11, 11, '右目の斜め前'],
+  hara_s:    [150, 240, 24, 10, '腹の前'],
+  kao:       [150,  75, 26, 28, '顔の前'],
+  kao_R:     [108,  72, 11, 24, '顔の右(向こう側)'],
+  kao_L:     [192,  76, 11, 24, '顔の左(手前)'],
+  hara_Rs:   [124, 250, 14, 14, '腹の斜め右前'],
+  hara_Ls:   [176, 250, 14, 14, '腹の斜め左前'],
+  mune_cR:   [136, 170, 13, 15, '胸(右寄り)'],
+  mune_cL:   [164, 170, 13, 15, '胸(左寄り)'],
+  kata_Rs:   [126, 136, 16, 11, '肩の斜め右前'],
+  kata_Ls:   [174, 136, 16, 11, '肩の斜め左前'],
+  kata_w:    [150, 137, 52, 11, '両肩の前']
+};
+const HAND = { R: '右手', L: '左手', B: '両手' };
+
+/* 動作ごとの位置。[場所, 手(R右 L左 B両), 動く順]。足・回数・定義のない動作は扱わない */
+const GASSHO = [['mune', 'B']];
+const ISAMI  = [['kata_R','R',1],['kata_L','L',1],['hara_R','R',2],['hara_L','L',2],['kata_R','R',3],['kata_L','L',3]];
+const OSAE   = [['hara', 'B']];
+const TAIRA  = [['mune', 'B']];
+const TASUKE = [['hoho_R','R'],['hoho_L','L']];
+const MAWARI = [['sleeve_R','L'],['hoho_Ll','R']];
+const KUCHI  = [['sleeve_R','L'],['kuchi','R']];
+const MIMI   = [['sleeve_R','L'],['mimi_R','R']];
+const MUNE   = [['mune','B']];
+const SEKAI  = [['sleeve_L','R'],['kata_m','L']];
+const HITAI_MUNE = [['hitai','B',1],['mune','B',2]];
+
+const SAZUKE = [['hara','B',1,'flipXL'],['uemune','B',2]];
+
+const KIRAFU = [['hara','B',1],['hara_w','B',2]];
+
+const HINO  = [['hara','B',1],['kata_m','B',2]];
+const HINO_UP = [['hara_s','B',1,'up:kata_m'],['kata_m','B',2]];
+const BASHO_UP = [['hara','B',1,'up:kata_m'],['kata_m','B',2]];
+const TATE1 = [['hara_Rm','B']];
+const TATE2 = [['hara_Rm','B',1],['hara_Lf','B',2]];
+const TATE3 = [['hara_Rm','B',1],['hara_Lf','B',2],['hara_Rm','B',3]];
+const DEKE  = [['hitai','B',1],['munashita','B',2],['kata_m','B',3]];
+const HITOSUJI = [['sleeve_R','L'],['waist_L','R',1],['me_R','R',2]];
+const YAMU  = [['sleeve_R','L'],['mimi_Rs','R']];
+const HINOKISHIN = [['kata_R','R'],['waist_L','L']];
+
+const TATE5 = [['hara_Rm','B',1],['hara_Lf','B',2],['hara_Rm','B',3],['hara_Lf','B',4],['hara_Rm','B',5]];
+const MUNE_R = [['sleeve_R','L'],['mune','R']];
+const SOBA = [['sleeve_R','L'],['sleeve_L','R'],['hara_Rs','R',1],['hara_Ls','L',2]];
+const SEKU = [['hara_Lf','L',1],['mune_cR','R',1],['hara_Rm','R',2],['mune_cL','L',2],['mune','B',3]];
+const KAO = [['kao','B']];
+const HITAI_KATA = [['hitai','B',1],['kata_m','B',2]];
+
+const SPEC = [
+  ['ひとが',HINO_UP], ['なにごと、いはうとも',TATE5], ['かみが',GASSHO], ['みている',KAO], ['きを',[['kata_m','B']]], ['しずめ',TATE2],
+  ['ふたりの',TATE2], ['こゝろを',MUNE], ['をさめ、いよ',[['hara_s','B',1],['hitai','B',2],['kata_m','B',3]]], ['なにかの',MAWARI], ['ことをも',HITAI_KATA], ['あらはれる',[['shitahara','B']]],
+  ['みな',HINO_UP], ['みてゐよ',KAO], ['そばなもの',SOBA], ['かみの',GASSHO], ['すること',TATE2], ['なすことを',[]],
+  ['よるひる',[['kao_R','R'],['kao_L','L']]], ['どんちやん',[['munashita','B']]], ['つと',GASSHO], ['めする',TATE2], ['そばも',[['sleeve_R','L'],['sleeve_L','R'],['hara_Rs','R']]], ['やかまし',[['hara_Rs','B',1],['hara_Ls','B',2]]], ['うたてかろ',[]],
+  ['いつも',HINO_UP], ['たすけが',TATE2], ['せくからに',SEKU], ['はやく',HITAI_KATA], ['やうきに',[['shitahara','B',1],['kata_w','B',2]]], ['なりてこい',TATE3],
+  ['むらかた',MAWARI], ['はやくに',HITAI_KATA], ['たすけたい',TATE3], ['なれど',[['hara','B']]], ['こゝろが',MUNE], ['わからいで',[]],
+  ['なにか',HINO_UP], ['よろづの',TATE2], ['たすけあい',[['kata_Rs','B',1],['kata_Ls','B',2]]], ['むねの',MUNE_R], ['うち',MUNE_R], ['より、しあんせよ',[['hitai','B',1],['munashita','B',2],['mune','B',3]]],
+  ['やまひの',YAMU], ['すつきり',[['mizo','B',1,'flip'],['mune','B',2]]], ['ねは',OSAE], ['ぬける',[['hara','B',1,'flipTall'],['mune','B',2]]], ['こゝろハ',MUNE], ['だん／＼',[]], ['いさみくる',ISAMI],
+  ['こゝは',OSAE], ['このよの',ISAMI], ['ごくらくや',GASSHO], ['わしも',MUNE], ['はや／＼',ISAMI], ['まゐりたい',GASSHO],
+  ['このたび',ISAMI], ['むね',MUNE], ['のうち',HITAI_MUNE], ['すみきり',MUNE], ['ましたが',[]], ['ありがたい',[]]
+];
+
+function parseDefs(raw) {
+  const defs = {};
+  let cur = null;
+  for (const line of raw.split(/\r?\n/)) {
+    if (/^##/.test(line)) {
+      cur = { name: line.replace(/^##/, '').trim().replace(/[「」]/g, ''), text: '' };
+      defs[cur.name] = cur;
+    } else if (/^#/.test(line)) {
+      cur = null;
+    } else if (cur && line.trim()) {
+      cur.text += line.trim();
+    }
+  }
+  return defs;
+}
+/* ### が歌詞(カードになる)。## は節(一ツなど)で、カードにしない。
+   INITIAL_SECTIONS と LABEL_LINES は二下り目だけの例外用で、このページでは空 */
+const INITIAL_SECTIONS = {};
+const LABEL_LINES = [];
+function parseChapter(raw) {
+  const lyrics = [];
+  let section = '', cur = null;
+  for (const line of raw.split(/\r?\n/)) {
+    if (/^###/.test(line)) {
+      const name = line.replace(/^###/, '').trim().replace(/[”"]+$/, '');
+      if (INITIAL_SECTIONS[name]) section = INITIAL_SECTIONS[name];
+      cur = { name, section, text: '' };
+      lyrics.push(cur);
+    } else if (/^##/.test(line)) {
+      section = line.replace(/^##/, '').trim();
+      cur = null;
+    } else if (/^#/.test(line)) {
+      cur = null;
+    } else if (LABEL_LINES.includes(line.trim())) {
+      cur = { name: line.trim(), section, text: '' };
+      lyrics.push(cur);
+    } else if (cur && line.trim()) {
+      cur.text += line.trim();
+    }
+  }
+  return lyrics;
+}
+function handText(t, name) {
+  const esc = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return t
+    .replace(new RegExp('^' + esc + 'ー'), '')
+    .replace(/（備考[^）]*）/g, '')
+    .replace(/（図[^）]*）/g, '')
+    .replace(/（[①-⑩]図）/g, '')
+    .replace(/（この時、身体[^）]*）/g, '')
+    .replace(/＝図[左右①-⑩]*/g, '')
+    .replace(/および「回りの足」（その一）/g, '')
+    .replace(/手足ともに、/g, '')
+    .replace(/身体および足は[^。]*。?/g, '')
+    .replace(/足は[^。]*。?/g, '。')
+    .replace(/。{2,}/g, '。')
+    .replace(/、。/g, '。')
+    .replace(/。$/, '');
+}
+function defText(t) {
+  return t.replace(/。。この場合.*$/, '。').replace(/、$/, '…');
+}
+function merge(spec) {
+  const m = new Map();
+  for (const [z, h, s, f] of spec) {
+    const k = z + '|' + h;
+    if (!m.has(k)) m.set(k, { z, h, steps: [], flip: false, up: '' });
+    if (f === 'flip' || f === 'flipTall' || f === 'flipXL') m.get(k).flip = f;
+    if (typeof f === 'string' && f.indexOf('up:') === 0) m.get(k).up = f.slice(3);
+    if (s && !m.get(k).steps.includes(s)) m.get(k).steps.push(s);
+  }
+  return [...m.values()];
+}
+const DATA = { defs: parseDefs(RAW_DEFS), lyrics: parseChapter(RAW_CHAPTER) };
+DATA.lyrics.forEach((l, i) => {
+  l.hand = handText(l.text, l.name);
+  l.items = merge(SPEC[i] ? SPEC[i][1] : []);
+  l.specName = SPEC[i] ? SPEC[i][0] : null;
+});
+/*--UI--*/
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const L = DATA.lyrics;
+const stage = $('#stage');
+const mqWide = window.matchMedia('(min-width: 820px)');
+let cur = -1;
+
+/* 袂を押さえる手は本筋ではない補助動作として、薄く点線で示す */
+const isAux = it => it.z.startsWith('sleeve');
+/* 手を返す動作: 位置のまわりに回る矢印を描く */
+function flipMark(cx, cy, rx, ry) {
+  const rad = d => d * Math.PI / 180;
+  const a0 = rad(40), a1 = rad(320);
+  const at = a => [cx + rx * Math.cos(a), cy + ry * Math.sin(a)];
+  const p0 = at(a0), p1 = at(a1);
+  let t = [-rx * Math.sin(a1), ry * Math.cos(a1)];
+  const len = Math.hypot(t[0], t[1]);
+  t = [t[0] / len, t[1] / len];
+  const n = [-t[1], t[0]];
+  const tip = [p1[0] + t[0] * 8, p1[1] + t[1] * 8];
+  const b1 = [p1[0] + n[0] * 4.5, p1[1] + n[1] * 4.5], b2 = [p1[0] - n[0] * 4.5, p1[1] - n[1] * 4.5];
+  const f = v => v[0].toFixed(1) + ',' + v[1].toFixed(1);
+  return '<path class="flip" d="M' + f(p0) + ' A' + rx + ' ' + ry + ' 0 1 1 ' + f(p1) + '" fill="none"/>' +
+         '<polygon class="flipHead" points="' + f(tip) + ' ' + f(b1) + ' ' + f(b2) + '"/>';
+}
+/* 位置から位置へ、まっすぐ動く矢印(番号の丸をよけて描く) */
+function moveArrow(x0, y0, x1, y1, startGap) {
+  const dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
+  const u = [dx / len, dy / len], n = [-u[1], u[0]];
+  const g = startGap === undefined ? 12 : startGap;
+  const a = [x0 + u[0] * g, y0 + u[1] * g], b = [x1 - u[0] * 13, y1 - u[1] * 13];
+  const base = [b[0] - u[0] * 9, b[1] - u[1] * 9];
+  const f = v => v[0].toFixed(1) + ',' + v[1].toFixed(1);
+  return '<line class="upline" x1="' + a[0].toFixed(1) + '" y1="' + a[1].toFixed(1) + '" x2="' + base[0].toFixed(1) + '" y2="' + base[1].toFixed(1) + '"/>' +
+         '<polygon class="uphead" points="' + f(b) + ' ' + f([base[0] + n[0] * 5, base[1] + n[1] * 5]) + ' ' + f([base[0] - n[0] * 5, base[1] - n[1] * 5]) + '"/>';
+}
+function badge(cx, cy, label) {
+  const w = 8 + 6.5 * label.length;
+  return '<rect class="badge" x="' + (cx - w / 2) + '" y="' + (cy - 8) + '" width="' + w + '" height="16" rx="8"/>' +
+         '<text class="num" x="' + cx + '" y="' + cy + '">' + esc(label) + '</text>';
+}
+function zoneSvg(it) {
+  const [cx, cy, rx, ry] = ZONES[it.z];
+  if (it.h === 'A') return '<g class="zone A">' + moveArrow(cx, cy, ZONES[it.up][0], ZONES[it.up][1], 0) + '</g>';
+  let s = '<g class="zone ' + it.h + (isAux(it) ? ' aux' : '') + '">' +
+    '<ellipse class="glow" cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" filter="url(#glow)"/>' +
+    '<ellipse class="ring" cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '"/>';
+  if (it.flip === 'flipXL') s += flipMark(cx, cy - 43, 11, 37);
+  else if (it.flip === 'flipTall') s += flipMark(cx, cy - 26, 11, 29);
+  else if (it.flip) s += flipMark(cx, cy - 9, 10, 20);
+  if (it.up) s += moveArrow(cx, cy, ZONES[it.up][0], ZONES[it.up][1]);
+  if (it.steps.length) s += badge(cx, cy, it.steps.slice().sort().join('・'));
+  return s + '</g>';
+}
+function refsHtml(text) {
+  return esc(text).replace(/「([^」]+)」/g, (m, n) =>
+    DATA.defs[n] ? '<span class="ref">「' + n + '」</span>' : m);
+}
+function select(i) {
+  if (i < 0 || i >= L.length) return;
+  cur = i;
+  const l = L[i];
+  $('#idx').textContent = (i + 1) + ' / ' + L.length;
+  $('#now').textContent = l.name;
+  const shown = l.items.filter(it => it.h !== 'A');
+  const ordered = [...shown.filter(it => !isAux(it)), ...shown.filter(isAux)];
+  $('#zones').innerHTML = [...l.items.filter(isAux), ...l.items.filter(it => !isAux(it))].map(zoneSvg).join('');
+  $('#rows').innerHTML = ordered.length
+    ? ordered.map(it =>
+        '<li' + (isAux(it) ? ' class="aux"' : '') + '><span class="sw ' + it.h + '"></span><span class="who">' + HAND[it.h] + '</span>' +
+        '<span>' + esc(ZONES[it.z][4]) + '</span><span class="stp">' +
+        (isAux(it) ? '補助動作' : (it.steps.length ? esc(it.steps.slice().sort().join('・')) + '番目' : '') + (it.flip ? '・手を返す' : '') + (it.up ? '・上へ' : '')) + '</span></li>').join('')
+    : '<li class="empty">この歌詞に、位置を指す記述はありません。</li>';
+  $('#desc').innerHTML = refsHtml(l.hand);
+  const names = [...new Set((l.hand.match(/「([^」]+)」/g) || []).map(s => s.slice(1, -1)))].filter(n => DATA.defs[n]);
+  $('#defs').innerHTML = names.map(n => '<li><b>「' + esc(n) + '」</b> ' + esc(defText(DATA.defs[n].text)) + '</li>').join('');
+  document.querySelectorAll('.chip').forEach((c, k) => c.setAttribute('aria-pressed', k === i ? 'true' : 'false'));
+  syncStageHeight();
+}
+function syncStageHeight() {
+  const h = mqWide.matches ? 0 : stage.offsetHeight;
+  document.documentElement.style.setProperty('--stage-h', h + 'px');
+}
+/* 名前を出さない節。このページでは全部出すので空 */
+const HIDDEN_LABELS = [];
+function buildList() {
+  const wrap = $('#verses');
+  const groups = [];
+  L.forEach((l, k) => {
+    const g = groups[groups.length - 1];
+    if (g && g.name === l.section) g.idx.push(k); else groups.push({ name: l.section, idx: [k] });
+  });
+  groups.forEach(g => {
+    const row = document.createElement('section');
+    row.className = 'verse';
+    row.innerHTML = '<div class="vl">' + (HIDDEN_LABELS.includes(g.name) ? '' : esc(g.name)) + '</div><div class="chips"></div>';
+    const chips = row.querySelector('.chips');
+    g.idx.forEach(i => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip' + (L[i].items.length ? '' : ' none');
+      b.setAttribute('aria-pressed', 'false');
+      const hands = ['R', 'L', 'B'].filter(h => L[i].items.some(it => it.h === h && !isAux(it)));
+      b.innerHTML = '<span>' + esc(L[i].name) + '</span><span class="dots">' + hands.map(h => '<i class="' + h + '"></i>').join('') + '</span>';
+      b.addEventListener('click', () => select(i));
+      chips.appendChild(b);
+    });
+    wrap.appendChild(row);
+  });
+}
+function step(d) {
+  const n = Math.min(L.length - 1, Math.max(0, cur + d));
+  select(n);
+  const chip = document.querySelectorAll('.chip')[n];
+  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  chip.scrollIntoView({ block: 'nearest', behavior: calm ? 'auto' : 'smooth' });
+}
+buildList();
+$('#prev').addEventListener('click', () => step(-1));
+$('#next').addEventListener('click', () => step(1));
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); }
+});
+window.addEventListener('resize', syncStageHeight);
+select(0);
+</script>
+<script src="menu.js"></script>
+</body>
+</html>
