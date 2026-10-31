@@ -1,4 +1,9 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>二下り目 手の位置</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -215,6 +220,8 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--left); ou
   .chip { font-size: 19px; }
 }
 </style>
+</head>
+<body>
 
 <div class="wrap">
   <header>
@@ -402,7 +409,7 @@ const ZONES = {
   kuchi:     [150,  91, 12,  6, '口許'],
   kata_R:    [114, 136, 17, 11, '右肩の前'],
   kata_L:    [186, 136, 17, 11, '左肩の前'],
-  kata_c:    [150, 137, 60, 13, '肩の高さ(肩幅いっぱい)'],
+  kata_c:    [150, 137, 60, 13, '肩の高さ'],
   kata_m:    [150, 137, 17, 11, '肩の高さ(中央)'],
   mune:      [150, 170, 30, 16, '胸の前'],
   mune_R:    [114, 174, 15, 16, '右の胸脇前'],
@@ -430,12 +437,13 @@ const ZONES = {
   mune_Rm:   [120, 172, 15, 16, '右胸の前'],
   kata_Rm:   [120, 136, 15, 11, '右肩の前'],
   hara_Lm:   [174, 242, 17, 16, '左腹の前(斜め左へ出す)'],
-  mune_w:    [150, 172, 52, 16, '胸の前(胴の幅)'],
+  mune_w:    [150, 172, 52, 16, '胸の前'],
   mune_Lm:   [182, 170, 14, 15, '左胸の前'],
   mune_Lc:   [166, 174, 11, 13, '左掌の上(右手で叩く)'],
   hara_w:    [150, 240, 60, 13, '腹の高さ(左右に引き分ける)'],
   mimi_Rs:   [118,  92, 10, 11, '右耳の下'],
-  waist_m:   [150, 296, 10, 10, '腰の中央(矢印の出発点)']
+  waist_m:   [150, 296, 10, 10, '腰の中央(矢印の出発点)'],
+  hara_Lf:   [180, 242, 15, 16, '左腹の前']
 };
 const HAND = { R: '右手', L: '左手', B: '両手' };
 
@@ -468,7 +476,7 @@ const SPEC = [
   ['れバ、やれ、にぎはしや',[]],
   ['みにつく',[['hara','B',1,'up:mune'],['mune','B',2]]],
   ['よなほり',MAWARI],
-  ['いづれも',[['sleeve_R','L'],['sleeve_L','R'],['hara_Lm','R',1],['hara_Rm','R',2],['hara_Rm','L',3],['hara_Lm','L',4]]],
+  ['いづれも',[['sleeve_R','L'],['sleeve_L','R'],['hara_Lf','R',1],['hara_Rm','R'],['hara_Rm','L',2],['hara_Lf','L']]],
   ['つき',MUNE],
   ['くるならば',[]],
   ['むほんの',[['waki_L','B',1],['mune','B',2]]],
@@ -699,4 +707,5 @@ window.addEventListener('resize', syncStageHeight);
 select(0);
 </script>
 <script src="menu.js"></script>
-</body></html>
+</body>
+</html>
