@@ -10,10 +10,10 @@
     ['四下り目', 'yokudari.html', true],
     ['五下り目', 'itsukudari.html', true],
     ['六下り目', 'mukudari.html', true],
-    ['七下り目', 'nanakudari.html', false],
-    ['八下り目', 'yakudari.html', false],
-    ['九下り目', 'kokonokudari.html', false],
-    ['十下り目', 'tokudari.html', false],
+    ['七下り目', 'nanakudari.html', true],
+    ['八下り目', 'yakudari.html', true],
+    ['九下り目', 'kokonokudari.html', true],
+    ['十下り目', 'tokudari.html', true],
     ['十一下り目', 'juichikudari.html', false],
     ['十二下り目', 'junikudari.html', false]
   ];
