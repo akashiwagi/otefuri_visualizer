@@ -14,7 +14,7 @@
     ['八下り目', 'yakudari.html', true],
     ['九下り目', 'kokonokudari.html', true],
     ['十下り目', 'tokudari.html', true],
-    ['十一下り目', 'juichikudari.html', false],
+    ['十一下り目', 'juichikudari.html', true],
     ['十二下り目', 'junikudari.html', false]
   ];
 
