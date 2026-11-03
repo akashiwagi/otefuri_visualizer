@@ -1,21 +1,21 @@
 /* ページ一覧メニュー。各ページの </body> の前に <script src="menu.js"></script> を1行入れると、
-   ページの先頭に折りたたみメニューが出ます。ページが増えたら、下の PAGES の3つ目を true にします。 */
+   ページの先頭に折りたたみメニューが出ます。ページが増えたら、下の PAGES に1行足します。 */
 (function () {
-  // [表示名, ファイル名, 公開済みか]
+  // [表示名, ファイル名]
   var PAGES = [
-    ['よろづよ八首', 'index.html', true],
-    ['一下り目', 'hitokudari.html', true],
-    ['二下り目', 'futakudari.html', true],
-    ['三下り目', 'mikudari.html', true],
-    ['四下り目', 'yokudari.html', true],
-    ['五下り目', 'itsukudari.html', true],
-    ['六下り目', 'mukudari.html', true],
-    ['七下り目', 'nanakudari.html', true],
-    ['八下り目', 'yakudari.html', true],
-    ['九下り目', 'kokonokudari.html', true],
-    ['十下り目', 'tokudari.html', true],
-    ['十一下り目', 'juichikudari.html', true],
-    ['十二下り目', 'junikudari.html', false]
+    ['よろづよ八首', 'index.html'],
+    ['一下り目', 'hitokudari.html'],
+    ['二下り目', 'futakudari.html'],
+    ['三下り目', 'mikudari.html'],
+    ['四下り目', 'yokudari.html'],
+    ['五下り目', 'itsukudari.html'],
+    ['六下り目', 'mukudari.html'],
+    ['七下り目', 'nanakudari.html'],
+    ['八下り目', 'yakudari.html'],
+    ['九下り目', 'kokonokudari.html'],
+    ['十下り目', 'tokudari.html'],
+    ['十一下り目', 'juichikudari.html'],
+    ['十二下り目', 'junikudari.html']
   ];
 
   var here = decodeURIComponent(location.pathname.split('/').pop() || '') || 'index.html';
@@ -31,11 +31,9 @@
     '.pagemenu summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .15s}',
     '.pagemenu[open] summary::after{transform:rotate(-135deg)}',
     '.pm-list{list-style:none;margin:0;padding:6px 10px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(8.5rem,1fr));gap:6px}',
-    '.pm-list a,.pm-list span.pm-soon{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:40px;padding:6px 12px;border:1px solid var(--line);border-radius:10px;font-family:var(--font-display);font-size:16px;color:var(--ink);text-decoration:none;background:var(--bg)}',
+    '.pm-list a{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:40px;padding:6px 12px;border:1px solid var(--line);border-radius:10px;font-family:var(--font-display);font-size:16px;color:var(--ink);text-decoration:none;background:var(--bg)}',
     '.pm-list a:hover{border-color:var(--muted)}',
     '.pm-list a[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}',
-    '.pm-list span.pm-soon{color:var(--muted);border-style:dashed;background:none}',
-    '.pm-list small{font-family:var(--font-body);font-size:11px}',
     '.pagemenu summary:focus-visible,.pm-list a:focus-visible{outline:2px solid var(--left);outline-offset:2px}',
     '@media (prefers-reduced-motion:reduce){.pagemenu summary::after{transition:none}}'
   ].join('\n');
@@ -61,20 +59,10 @@
   list.className = 'pm-list';
   PAGES.forEach(function (p) {
     var li = document.createElement('li');
-    var el;
-    if (p[2]) {
-      el = document.createElement('a');
-      el.href = p[1];
-      el.textContent = p[0];
-      if (p === cur) el.setAttribute('aria-current', 'page');
-    } else {
-      el = document.createElement('span');
-      el.className = 'pm-soon';
-      el.textContent = p[0];
-      var small = document.createElement('small');
-      small.textContent = '準備中';
-      el.appendChild(small);
-    }
+    var el = document.createElement('a');
+    el.href = p[1];
+    el.textContent = p[0];
+    if (p === cur) el.setAttribute('aria-current', 'page');
     li.appendChild(el);
     list.appendChild(li);
   });
