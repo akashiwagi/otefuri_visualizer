@@ -16,7 +16,7 @@
     ['十下り目', 'tokudari.html'],
     ['十一下り目', 'juichikudari.html'],
     ['十二下り目', 'junikudari.html'],
-    ['部位から探す', 'bui.html']
+    ['部位でみる', 'bui.html']
   ];
 
   var here = decodeURIComponent(location.pathname.split('/').pop() || '') || 'index.html';
@@ -72,7 +72,7 @@
   var wrap = document.querySelector('.wrap') || document.body;
   wrap.insertBefore(menu, wrap.firstChild);
 
-  /* 「部位から探す」からのリンク(ページ名.html#番号)で、その番号の歌詞を開く */
+  /* 「部位でみる」からのリンク(ページ名.html#番号)で、その番号の歌詞を開く */
   function openByHash() {
     var m = /^#(\d+)$/.exec(location.hash);
     if (m && typeof select === 'function') {
